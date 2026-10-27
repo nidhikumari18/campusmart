@@ -7,6 +7,7 @@ export const useAuth = create((set) => ({
   loading: true,
   error: null,
 
+  // Restore login session when page refreshes
   checkAuth: async () => {
     set({ loading: true });
 
@@ -18,14 +19,22 @@ export const useAuth = create((set) => ({
         loading: false,
         error: null,
       });
-    } catch {
+
+      return data.user;
+    } catch (error) {
+      console.error("Session check failed:", error);
+
       set({
         user: null,
         loading: false,
+        error: error.message,
       });
+
+      return null;
     }
   },
 
+  // Create account
   register: async (form) => {
     set({ error: null });
 
@@ -44,6 +53,7 @@ export const useAuth = create((set) => ({
     }
   },
 
+  // Login
   login: async (form) => {
     set({ error: null });
 
@@ -62,12 +72,15 @@ export const useAuth = create((set) => ({
     }
   },
 
+  // Logout
   logout: async () => {
-    await authAPI.logout();
-
-    set({
-      user: null,
-      error: null,
-    });
+    try {
+      await authAPI.logout();
+    } finally {
+      set({
+        user: null,
+        error: null,
+      });
+    }
   },
 }));

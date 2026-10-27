@@ -4,7 +4,8 @@ import User from "../models/User.js";
 
 export async function protect(req, res, next) {
   try {
-    const token = req.cookies?.campusmart_token;
+    // Read the cookie created during login
+    const token = req.cookies?.token;
 
     if (!token) {
       return res.status(401).json({
@@ -12,13 +13,26 @@ export async function protect(req, res, next) {
       });
     }
 
+    // Verify JWT token
     const decoded = jwt.verify(
       token,
       process.env.JWT_SECRET,
-      { algorithms: ["HS256"] }
+      {
+        algorithms: ["HS256"],
+      }
     );
 
-    const user = await User.findById(decoded.userId);
+    // Read user ID from token
+    const userId = decoded.id;
+
+    if (!userId) {
+      return res.status(401).json({
+        message: "Invalid login session.",
+      });
+    }
+
+    // Find user in MongoDB
+    const user = await User.findById(userId);
 
     if (!user) {
       return res.status(401).json({
@@ -26,9 +40,13 @@ export async function protect(req, res, next) {
       });
     }
 
+    // Attach authenticated user to request
     req.user = user;
+
     next();
-  } catch {
+  } catch (error) {
+    console.error("Authentication error:", error.message);
+
     return res.status(401).json({
       message: "Session expired. Please log in again.",
     });
